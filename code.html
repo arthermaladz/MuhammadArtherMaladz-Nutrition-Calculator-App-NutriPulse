@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf9fc">
+  <meta name="description" content="NutriPulse membantu menghitung dan mencatat asupan gizi harian dengan cara yang sederhana.">
+  <title>NutriPulse — Kalkulator Gizi Harian</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #faf9fc;
+      --surface: #fff;
+      --surface-soft: #f6f3fb;
+      --lavender: #ede9fe;
+      --lavender-deep: #ddd6fe;
+      --ink: #1e1b4b;
+      --muted: #66627b;
+      --muted-light: #89859b;
+      --line: #e9e5f0;
+      --violet: #6d28d9;
+      --violet-dark: #5300b7;
+      --purple: #8b5cf6;
+      --amber: #f59e0b;
+      --mint: #10b981;
+      --rose: #f43f5e;
+      --shadow: 0 4px 20px -2px rgba(30, 27, 75, .07);
+      --shadow-up: 0 14px 38px -12px rgba(58, 35, 111, .24);
+      --radius: 16px;
+      font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; color: var(--ink); background: var(--canvas); font-size: 14px; line-height: 1.5; }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(109,40,217,.2); outline-offset: 2px; }
+    .numeric { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+    .topbar { position: sticky; top: 0; z-index: 20; min-height: 70px; border-bottom: 1px solid rgba(109,40,217,.09); background: rgba(255,255,255,.88); backdrop-filter: blur(16px); }
+    .topbar-inner { max-width: 1200px; margin: auto; padding: 0 28px; display:flex; min-height:70px; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:flex; align-items:center; gap:11px; text-decoration:none; color:inherit; }
+    .brand-mark { display:grid; place-items:center; width:40px; height:40px; color:white; font-size:20px; border-radius:14px; background:linear-gradient(145deg,#8b5cf6,#5300b7); box-shadow:0 7px 15px rgba(109,40,217,.24); }
+    .brand-name { display:block; font-size:16px; font-weight:800; letter-spacing:-.04em; line-height:1.1; }
+    .brand-caption { display:block; margin-top:4px; color:var(--muted); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    .top-greeting { color:var(--muted); font-size:12px; }
+    .avatar { width:38px; height:38px; border:0; border-radius:50%; color:var(--violet); background:var(--lavender); font-weight:800; cursor:pointer; }
+    main { max-width:1200px; min-height:calc(100vh - 135px); margin:0 auto; padding:28px; }
+    .page-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:23px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { margin-bottom:4px; font-size:28px; line-height:1.2; letter-spacing:-.045em; }
+    h2 { margin-bottom:3px; font-size:20px; line-height:1.3; letter-spacing:-.03em; }
+    h3 { margin-bottom:2px; font-size:15px; line-height:1.35; }
+    .subtitle { margin:0; color:var(--muted); font-size:13px; }
+    .date-control { display:flex; align-items:center; gap:7px; padding:5px; border:1px solid var(--line); border-radius:999px; background:var(--surface); }
+    .date-control input { width:132px; padding:6px 4px; border:0; color:var(--ink); background:transparent; font-size:12px; }
+    .icon-button { display:grid; place-items:center; width:34px; height:34px; border:0; border-radius:50%; color:var(--violet); background:transparent; cursor:pointer; font-size:18px; }
+    .icon-button:hover { background:var(--lavender); }
+    .layout { display:grid; grid-template-columns:minmax(0, 1fr) minmax(300px, 365px); align-items:start; gap:22px; }
+    .stack { display:grid; gap:20px; min-width:0; }
+    .card { border:1px solid rgba(109,40,217,.09); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+    .hero { position:relative; overflow:hidden; padding:23px; border:0; border-radius:24px; color:#fff; background:linear-gradient(128deg,#6d28d9 0%,#5300b7 53%,#7540d9 100%); box-shadow:0 14px 36px -16px rgba(83,0,183,.55); }
+    .hero:before,.hero:after { position:absolute; content:""; pointer-events:none; border-radius:50%; background:rgba(255,255,255,.08); }
+    .hero:before { width:260px; height:260px; right:-110px; top:-150px; }
+    .hero:after { width:180px; height:180px; left:45%; bottom:-145px; }
+    .hero-content { position:relative; z-index:1; }
+    .hero-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .eyebrow { display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border:1px solid rgba(255,255,255,.15); border-radius:999px; color:#f1eaff; background:rgba(255,255,255,.1); font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .button { display:inline-flex; min-height:42px; align-items:center; justify-content:center; gap:8px; padding:0 17px; border:0; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:transform .16s ease,background .2s ease,box-shadow .2s ease; }
+    .button:active { transform:scale(.98); }
+    .button-primary { color:#fff; background:var(--violet); box-shadow:0 6px 14px rgba(109,40,217,.18); }
+    .button-primary:hover { background:#5b21b6; }
+    .button-soft { color:var(--violet); background:var(--lavender); }
+    .button-soft:hover { background:var(--lavender-deep); }
+    .button-hero { min-height:34px; padding:0 12px; color:#fff; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.12); font-size:11px; }
+    .button-hero:hover { background:rgba(255,255,255,.2); }
+    .hero-main { display:grid; grid-template-columns:1fr 142px; align-items:center; gap:16px; padding:20px 0 13px; }
+    .hero-label { color:#e3d5ff; font-size:12px; font-weight:600; }
+    .hero-number { margin:4px 0 0; font-size:36px; font-weight:800; letter-spacing:-.06em; line-height:1.15; }
+    .hero-number small { color:#e3d5ff; font-size:13px; font-weight:600; letter-spacing:0; }
+    .status-chip { display:inline-flex; align-items:center; gap:6px; margin-top:11px; padding:6px 10px; border-radius:999px; color:#fff; background:rgba(255,255,255,.14); font-size:11px; }
+    .status-dot { width:7px; height:7px; border-radius:50%; background:#baf5de; }
+    .status-chip.over .status-dot { background:#ffb5c1; }
+    .ring-wrap { position:relative; display:grid; place-items:center; width:135px; height:135px; }
+    .ring { width:135px; height:135px; transform:rotate(-90deg); }
+    .ring-track,.ring-value { fill:none; stroke-width:9; }
+    .ring-track { stroke:rgba(255,255,255,.18); }
+    .ring-value { stroke:#fff; stroke-linecap:round; transition:stroke-dashoffset .6s ease; }
+    .ring-center { position:absolute; text-align:center; }
+    .ring-center strong { display:block; font-size:24px; line-height:1.1; }
+    .ring-center span { color:#e3d5ff; font-size:9px; font-weight:700; letter-spacing:.1em; }
+    .macro-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding-top:13px; border-top:1px solid rgba(255,255,255,.17); }
+    .macro-head { display:flex; align-items:center; justify-content:space-between; gap:5px; font-size:11px; font-weight:700; }
+    .macro-head strong { font-size:11px; font-variant-numeric:tabular-nums; }
+    .macro-caption { margin-top:4px; color:#e3d5ff; font-size:10px; }
+    .track { height:6px; overflow:hidden; margin-top:8px; border-radius:99px; background:rgba(255,255,255,.2); }
+    .track-fill { height:100%; width:0; border-radius:inherit; background:#fff; transition:width .55s ease; }
+    .macro-item:nth-child(2) .track-fill { background:#d7c5ff; }
+    .macro-item:nth-child(3) .track-fill { background:#ffd27e; }
+    .quick-log { width:100%; min-height:36px; margin-top:14px; border:1px solid rgba(255,255,255,.19); border-radius:999px; color:#fff; background:rgba(255,255,255,.11); font-size:11px; font-weight:800; cursor:pointer; }
+    .quick-log:hover { background:rgba(255,255,255,.19); }
+    .section-title { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .section-title .subtitle { font-size:12px; }
+    .meal-count { padding:5px 10px; border-radius:999px; color:var(--violet); background:var(--lavender); font-size:10px; font-weight:800; white-space:nowrap; }
+    .meal-list { display:grid; gap:12px; }
+    .meal-card { padding:15px; }
+    .meal-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .meal-label { display:flex; align-items:center; gap:10px; min-width:0; }
+    .meal-icon { display:grid; flex:none; place-items:center; width:38px; height:38px; border-radius:13px; color:var(--violet); background:var(--lavender); font-size:17px; }
+    .meal-card:nth-child(2) .meal-icon { color:#7c3aed; background:#f0eaff; }
+    .meal-card:nth-child(3) .meal-icon { color:#a16207; background:#fff4d9; }
+    .meal-card:nth-child(4) .meal-icon { color:#0f766e; background:#e2f6f2; }
+    .meal-sub { margin:0; color:var(--muted); font-size:10px; }
+    .meal-total { flex:none; text-align:right; }
+    .meal-total strong { display:block; font-size:17px; letter-spacing:-.03em; }
+    .meal-total span { color:var(--muted-light); font-size:10px; }
+    .meal-items { display:grid; gap:7px; margin-top:13px; }
+    .food-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 11px; border-radius:12px; background:#f8f6fb; }
+    .food-detail { min-width:0; }
+    .food-name { display:block; overflow:hidden; font-size:12px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+    .food-meta { margin-top:3px; color:var(--muted); font-size:10px; }
+    .food-actions { display:flex; flex:none; align-items:center; gap:3px; }
+    .food-kcal { margin-right:5px; font-size:11px; font-weight:800; white-space:nowrap; }
+    .tiny-button { display:grid; place-items:center; width:30px; height:30px; border:0; border-radius:9px; color:var(--muted); background:transparent; cursor:pointer; }
+    .tiny-button:hover { color:var(--violet); background:var(--lavender); }
+    .tiny-button.delete:hover { color:var(--rose); background:#fff0f2; }
+    .meal-add { width:100%; min-height:35px; margin-top:10px; border:0; border-radius:10px; color:var(--violet); background:var(--lavender); font-size:11px; font-weight:700; cursor:pointer; }
+    .meal-add:hover { background:var(--lavender-deep); }
+    .meal-empty { margin-top:12px; padding:15px; border-radius:12px; color:var(--muted); background:#faf9fc; text-align:center; font-size:11px; }
+    .calc-card { padding:19px; }
+    .calc-card h2 { font-size:17px; }
+    .calc-card .subtitle { font-size:11px; }
+    .meal-switch { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin:15px 0; padding:4px; border-radius:999px; background:#f5f2fa; }
+    .meal-switch button { min-height:32px; padding:0 4px; border:1px solid transparent; border-radius:999px; color:var(--muted); background:transparent; font-size:10px; font-weight:700; cursor:pointer; }
+    .meal-switch button[aria-checked="true"] { border-color:#c4b5fd; color:var(--violet); background:#ede9fe; }
+    .field-label { display:block; margin-bottom:6px; font-size:11px; font-weight:700; }
+    .search-wrap { position:relative; }
+    .search-input,.number-input,.select-input { width:100%; min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:10px; color:var(--ink); background:#fff; }
+    .search-input { padding-left:38px; }
+    .search-icon { position:absolute; top:10px; left:12px; color:var(--muted-light); font-size:17px; pointer-events:none; }
+    .suggestions { position:absolute; top:calc(100% + 5px); left:0; z-index:5; width:100%; max-height:230px; overflow:auto; padding:5px; border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:var(--shadow-up); }
+    .suggestion { display:flex; width:100%; align-items:center; justify-content:space-between; gap:8px; padding:9px; border:0; border-radius:8px; background:#fff; text-align:left; cursor:pointer; }
+    .suggestion:hover,.suggestion:focus-visible { background:var(--surface-soft); }
+    .suggestion strong { font-size:11px; }
+    .suggestion small { color:var(--muted); font-size:10px; }
+    .not-found { margin-top:9px; padding:10px; border-radius:10px; color:#853c51; background:#fff3f5; font-size:11px; }
+    .not-found button { margin-left:3px; padding:0; border:0; color:var(--violet); background:none; font-weight:800; cursor:pointer; }
+    .portion-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; margin:16px 0 4px; }
+    .stepper { display:flex; align-items:center; gap:8px; }
+    .step-button { display:grid; place-items:center; width:34px; height:34px; border:1px solid var(--line); border-radius:50%; color:var(--violet); background:#fff; font-size:18px; cursor:pointer; }
+    .portion-input { width:74px; height:42px; padding:0 6px; border:1px solid var(--line); border-radius:10px; color:var(--ink); background:#fff; text-align:center; font-size:19px; font-weight:800; }
+    .gram-label { color:var(--muted); font-size:11px; }
+    input[type="range"] { width:100%; height:5px; margin:14px 0 0; border-radius:99px; accent-color:var(--violet); cursor:pointer; }
+    .range-ends { display:flex; justify-content:space-between; color:var(--muted-light); font-size:9px; }
+    .preview { margin-top:17px; padding:13px; border-radius:13px; background:#f5f2fa; }
+    .preview-title { margin-bottom:10px; color:var(--violet); font-size:11px; font-weight:800; }
+    .nutrition-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .nutrition-cell { min-width:0; padding:9px 4px; border-radius:9px; background:#fff; text-align:center; }
+    .nutrition-cell span { display:block; color:var(--muted); font-size:9px; }
+    .nutrition-cell strong { display:block; margin:3px 0 1px; font-size:15px; font-weight:800; }
+    .nutrition-cell:nth-child(2) strong { color:var(--violet); }
+    .nutrition-cell:nth-child(3) strong { color:var(--purple); }
+    .nutrition-cell:nth-child(4) strong { color:#b77908; }
+    .nutrition-cell small { color:var(--muted-light); font-size:8px; }
+    .source-note { margin:9px 0 0; color:var(--muted-light); font-size:9px; }
+    .calc-submit { width:100%; margin-top:14px; }
+    .disclaimer { display:flex; gap:9px; padding:12px; border:1px solid #eee8fb; border-radius:12px; color:var(--muted); background:#fbfaff; font-size:10px; }
+    .disclaimer strong { color:var(--ink); }
+    .view { display:none; }
+    .view.active { display:block; }
+    .bottom-nav { position:sticky; bottom:0; z-index:15; display:flex; justify-content:center; border-top:1px solid rgba(109,40,217,.11); background:rgba(255,255,255,.91); box-shadow:0 -6px 24px -2px rgba(30,27,75,.05); backdrop-filter:blur(16px); }
+    .nav-inner { display:grid; width:min(100%,620px); grid-template-columns:repeat(4,1fr); padding:7px 12px max(7px,env(safe-area-inset-bottom)); }
+    .nav-button { display:grid; justify-items:center; gap:2px; min-height:48px; border:0; border-radius:13px; color:var(--muted); background:transparent; font-size:9px; font-weight:700; cursor:pointer; }
+    .nav-button .nav-icon { font-size:18px; line-height:1.2; }
+    .nav-button[aria-current="page"] { color:var(--violet); background:#f3effd; }
+    .toast { position:fixed; left:50%; bottom:82px; z-index:50; display:none; max-width:calc(100vw - 32px); align-items:center; gap:12px; padding:11px 15px; border-radius:14px; color:#fff; background:#241b3a; box-shadow:var(--shadow-up); font-size:12px; transform:translateX(-50%); }
+    .toast.show { display:flex; animation:toast-in .2s ease-out; }
+    .toast button { padding:4px 7px; border:0; border-radius:7px; color:#e5d6ff; background:rgba(255,255,255,.12); font-size:11px; font-weight:800; cursor:pointer; }
+    @keyframes toast-in { from { opacity:0; transform:translate(-50%,8px); } to { opacity:1; transform:translate(-50%,0); } }
+    .modal-backdrop { position:fixed; inset:0; z-index:40; display:none; place-items:center; padding:18px; background:rgba(25,16,43,.38); backdrop-filter:blur(5px); }
+    .modal-backdrop.open { display:grid; }
+    .modal { width:min(100%,500px); max-height:min(90vh,760px); overflow:auto; padding:23px; border:1px solid rgba(109,40,217,.12); border-radius:24px; background:rgba(255,255,255,.97); box-shadow:var(--shadow-up); }
+    .modal-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:17px; }
+    .modal-head h2 { margin:0 0 4px; font-size:20px; }
+    .modal-close { flex:none; width:34px; height:34px; border:0; border-radius:50%; color:var(--muted); background:#f2eff8; font-size:18px; cursor:pointer; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-field { display:grid; gap:5px; }
+    .form-field.full { grid-column:1/-1; }
+    .form-field label { font-size:11px; font-weight:700; }
+    .form-field input,.form-field select { width:100%; height:42px; padding:0 10px; border:1px solid var(--line); border-radius:9px; color:var(--ink); background:#fff; }
+    .helper { color:var(--muted); font-size:10px; }
+    .modal-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; margin-top:18px; }
+    .message { min-height:16px; margin:9px 0 0; color:#9f1239; font-size:11px; }
+    .segmented { display:inline-flex; gap:3px; padding:3px; border-radius:999px; background:#f3eff9; }
+    .segmented button { padding:6px 11px; border:0; border-radius:999px; color:var(--muted); background:transparent; font-size:10px; font-weight:700; cursor:pointer; }
+    .segmented button[aria-pressed="true"] { color:var(--violet); background:#fff; box-shadow:0 2px 7px rgba(30,27,75,.08); }
+    .target-slider { margin:8px 0 17px!important; }
+    .target-total { margin-top:12px; padding:11px; border-radius:11px; color:var(--muted); background:#f7f4fb; font-size:11px; }
+    .target-total strong { color:var(--ink); }
+    .profile-card { padding:20px; }
+    .profile-kpis,.analysis-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; }
+    .mini-stat { padding:14px; border-radius:13px; background:#f6f3fb; }
+    .mini-stat span { display:block; color:var(--muted); font-size:10px; }
+    .mini-stat strong { display:block; margin-top:5px; font-size:18px; font-weight:800; }
+    .bars { display:flex; height:150px; align-items:flex-end; justify-content:space-around; gap:8px; padding:14px 8px 0; border-bottom:1px solid var(--line); }
+    .bar-column { display:flex; height:100%; flex:1; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; }
+    .bar-value { color:var(--muted); font-size:9px; }
+    .bar { width:min(28px,70%); min-height:3px; border-radius:8px 8px 2px 2px; background:linear-gradient(#a78bfa,#6d28d9); }
+    .bar-label { color:var(--muted); font-size:9px; }
+    .hidden { display:none!important; }
+    body.modal-open { overflow:hidden; }
+    @media (min-width:1024px) { .layout { grid-template-columns:minmax(0,1fr) 365px; } .sticky-side { position:sticky; top:91px; } }
+    @media (max-width:820px) { main { padding:22px 20px 28px; } .topbar-inner { padding:0 20px; } .layout { grid-template-columns:1fr; } .sticky-side { display:grid; grid-template-columns:1fr 1fr; align-items:start; gap:14px; } .calc-card { grid-row:span 2; } }
+    @media (max-width:570px) {
+      main { padding:18px 15px 24px; }
+      .topbar-inner { min-height:62px; padding:0 15px; }
+      .topbar { min-height:62px; }
+      .brand-mark { width:36px; height:36px; }
+      .top-greeting { display:none; }
+      .page-heading { align-items:flex-start; flex-direction:column; margin-bottom:17px; }
+      h1 { font-size:25px; }
+      .date-control { align-self:stretch; justify-content:space-between; }
+      .date-control input { width:auto; flex:1; }
+      .layout { gap:15px; }
+      .stack { gap:15px; }
+      .hero { padding:18px; border-radius:21px; }
+      .hero-main { grid-template-columns:1fr 112px; gap:7px; padding:17px 0 12px; }
+      .hero-number { font-size:30px; }
+      .ring-wrap,.ring { width:108px; height:108px; }
+      .ring-center strong { font-size:20px; }
+      .macro-grid { gap:8px; }
+      .macro-head { align-items:flex-start; flex-direction:column; gap:2px; font-size:10px; }
+      .macro-head strong { font-size:10px; }
+      .macro-caption { font-size:9px; }
+      .meal-card { padding:13px; }
+      .sticky-side { display:flex; flex-direction:column; }
+      .calc-card { width:100%; }
+      .disclaimer { width:100%; }
+      .profile-kpis,.analysis-cards { gap:7px; }
+      .mini-stat { padding:11px; }
+      .mini-stat strong { font-size:16px; }
+    }
+    @media (max-width:360px) {
+      .hero-main { grid-template-columns:1fr 92px; }
+      .ring-wrap,.ring { width:90px; height:90px; }
+      .ring-center strong { font-size:18px; }
+      .hero-number { font-size:27px; }
+      .meal-switch button { font-size:9px; }
+      .nutrition-grid { gap:4px; }
+      .nutrition-cell strong { font-size:13px; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#" aria-label="NutriPulse, beranda">
+        <span class="brand-mark" aria-hidden="true">✳</span>
+        <span><span class="brand-name">NutriPulse</span><span class="brand-caption">Temani pola makanmu</span></span>
+      </a>
+      <div class="top-actions">
+        <span class="top-greeting" id="greeting">Sedikit demi sedikit, tetap berarti.</span>
+        <button class="avatar" id="profile-shortcut" aria-label="Buka profil">N</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="view active" id="daily-view" aria-labelledby="page-title">
+      <div class="page-heading">
+        <div><h1 id="page-title">Harian</h1><p class="subtitle">Kenali progresmu, satu pilihan baik pada satu waktu.</p></div>
+        <div class="date-control" aria-label="Pilih tanggal jurnal">
+          <button class="icon-button" id="prev-day" aria-label="Hari sebelumnya">‹</button>
+          <input type="date" id="selected-date" aria-label="Tanggal jurnal">
+          <button class="icon-button" id="next-day" aria-label="Hari berikutnya">›</button>
+          <button class="icon-button" id="today-button" aria-label="Kembali ke hari ini" title="Hari ini">⌂</button>
+        </div>
+      </div>
+      <div class="layout">
+        <div class="stack">
+          <section class="hero" aria-label="Ringkasan asupan harian">
+            <div class="hero-content">
+              <div class="hero-top">
+                <span class="eyebrow"><span aria-hidden="true">✦</span> <span id="summary-label">Ringkasan Hari Ini</span></span>
+                <button class="button button-hero" id="open-target">⚙ Atur Target</button>
+              </div>
+              <div class="hero-main">
+                <div>
+                  <div class="hero-label">Kalori yang sudah tercatat</div>
+                  <div class="hero-number numeric"><span id="consumed-calories">0</span> <small>/ <span id="target-calories">2.100</span> kkal</small></div>
+                  <div class="status-chip" id="calorie-status"><i class="status-dot"></i><span id="status-copy">2.100 kkal tersisa</span></div>
+                </div>
+                <div class="ring-wrap" role="img" id="calorie-ring" aria-label="0 persen dari target kalori">
+                  <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+                    <circle class="ring-track" cx="60" cy="60" r="49"></circle>
+                    <circle class="ring-value" id="ring-value" cx="60" cy="60" r="49" stroke-dasharray="307.88" stroke-dashoffset="307.88"></circle>
+                  </svg>
+                  <div class="ring-center numeric"><strong id="calorie-percent">0%</strong><span>TERCAPAI</span></div>
+                </div>
+              </div>
+              <div class="macro-grid" id="macro-summary">
+                <div class="macro-item" data-macro="protein">
+                  <div class="macro-head"><span>Protein</span><strong class="numeric"><span id="protein-current">0</span> / <span id="protein-target">120</span> g</strong></div>
+                  <div class="track" role="progressbar" aria-label="Protein" aria-valuemin="0" aria-valuemax="120" aria-valuenow="0"><div class="track-fill" id="protein-fill"></div></div>
+                  <div class="macro-caption"><span id="protein-percent">0</span>% dari target</div>
+                </div>
+                <div class="macro-item" data-macro="carbs">
+                  <div class="macro-head"><span>Karbohidrat</span><strong class="numeric"><span id="carbs-current">0</span> / <span id="carbs-target">260</span> g</strong></div>
+                  <div class="track" role="progressbar" aria-label="Karbohidrat" aria-valuemin="0" aria-valuemax="260" aria-valuenow="0"><div class="track-fill" id="carbs-fill"></div></div>
+                  <div class="macro-caption"><span id="carbs-percent">0</span>% dari target</div>
+                </div>
+                <div class="macro-item" data-macro="fat">
+                  <div class="macro-head"><span>Lemak</span><strong class="numeric"><span id="fat-current">0</span> / <span id="fat-target">65</span> g</strong></div>
+                  <div class="track" role="progressbar" aria-label="Lemak" aria-valuemin="0" aria-valuemax="65" aria-valuenow="0"><div class="track-fill" id="fat-fill"></div></div>
+                  <div class="macro-caption"><span id="fat-percent">0</span>% dari target</div>
+                </div>
+              </div>
+              <button class="quick-log" id="quick-log">＋ Catat Makanan Cepat</button>
+            </div>
+          </section>
+
+          <section aria-labelledby="journal-heading">
+            <div class="section-title">
+              <div><h2 id="journal-heading">Jurnal Waktu Makan</h2><p class="subtitle" id="journal-date-label">Rincian asupan hari ini</p></div>
+              <span class="meal-count">4 WAKTU MAKAN</span>
+            </div>
+            <div class="meal-list" id="meal-list"></div>
+          </section>
+        </div>
+
+        <aside class="sticky-side">
+          <section class="card calc-card" id="calculator-card" aria-labelledby="calculator-heading">
+            <div class="section-title">
+              <div><h2 id="calculator-heading">Kalkulator Gizi</h2><p class="subtitle">Pilih makanan dan atur porsinya.</p></div>
+              <span aria-hidden="true">✳</span>
+            </div>
+            <div class="meal-switch" role="radiogroup" aria-label="Waktu makan">
+              <button type="button" role="radio" aria-checked="true" data-meal="sarapan">Sarapan</button>
+              <button type="button" role="radio" aria-checked="false" data-meal="siang">Siang</button>
+              <button type="button" role="radio" aria-checked="false" data-meal="malam">Malam</button>
+              <button type="button" role="radio" aria-checked="false" data-meal="snack">Camilan</button>
+            </div>
+            <label class="field-label" for="food-search">Cari makanan</label>
+            <div class="search-wrap">
+              <span class="search-icon" aria-hidden="true">⌕</span>
+              <input class="search-input" id="food-search" type="search" autocomplete="off" placeholder="Contoh: nasi putih" aria-autocomplete="list" aria-controls="food-suggestions">
+              <div class="suggestions hidden" id="food-suggestions" role="listbox"></div>
+            </div>
+            <div id="food-not-found" class="not-found hidden" role="status">Makanan tidak ditemukan. <button type="button" id="create-custom-food">Buat makanan kustom</button></div>
+            <div class="portion-row">
+              <div><label class="field-label" for="portion-input">Porsi konsumsi</label><span class="helper">Masukkan gramasi yang kamu makan</span></div>
+              <div class="stepper">
+                <button class="step-button" type="button" id="portion-minus" aria-label="Kurangi 10 gram">−</button>
+                <input class="portion-input numeric" id="portion-input" type="number" min="1" max="5000" step="1" value="150" aria-label="Porsi dalam gram">
+                <span class="gram-label">g</span>
+                <button class="step-button" type="button" id="portion-plus" aria-label="Tambah 10 gram">+</button>
+              </div>
+            </div>
+            <input type="range" id="portion-range" min="20" max="400" step="10" value="150" aria-label="Geser untuk mengatur porsi, 20 hingga 400 gram">
+            <div class="range-ends"><span>20 g</span><span>400 g</span></div>
+            <div class="preview" aria-live="polite">
+              <div class="preview-title">Pratinjau nilai gizi</div>
+              <div class="nutrition-grid">
+                <div class="nutrition-cell"><span>Kalori</span><strong id="preview-calories">—</strong><small>kkal</small></div>
+                <div class="nutrition-cell"><span>Protein</span><strong id="preview-protein">—</strong><small>gram</small></div>
+                <div class="nutrition-cell"><span>Karbo</span><strong id="preview-carbs">—</strong><small>gram</small></div>
+                <div class="nutrition-cell"><span>Lemak</span><strong id="preview-fat">—</strong><small>gram</small></div>
+              </div>
+              <p class="source-note" id="food-source">Pilih makanan untuk melihat estimasi per porsi.</p>
+            </div>
+            <button type="button" class="button button-primary calc-submit" id="add-to-journal" disabled>＋ Tambahkan ke jurnal</button>
+            <p class="message" id="calc-message" role="status"></p>
+          </section>
+          <div class="disclaimer"><span aria-hidden="true">ⓘ</span><span><strong>Catatan:</strong> Nilai gizi adalah estimasi, bukan saran medis. Kebutuhan setiap orang berbeda; konsultasikan dengan tenaga kesehatan untuk kebutuhan khusus.</span></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view" id="analysis-view" aria-labelledby="analysis-heading">
+      <div class="page-heading"><div><h1 id="analysis-heading">Analisis</h1><p class="subtitle">Lihat pola pencatatanmu selama tujuh hari terakhir.</p></div><span class="meal-count">7 HARI TERAKHIR</span></div>
+      <div class="card profile-card">
+        <div class="analysis-cards">
+          <div class="mini-stat"><span>Rata-rata kalori</span><strong class="numeric" id="avg-calories">—</strong></div>
+          <div class="mini-stat"><span>Hari tercatat</span><strong class="numeric" id="logged-days">0 / 7</strong></div>
+          <div class="mini-stat"><span>Rata-rata protein</span><strong class="numeric" id="avg-protein">—</strong></div>
+        </div>
+        <h2>Asupan kalori</h2><p class="subtitle">Hari tanpa catatan ditampilkan kosong.</p>
+        <div class="bars" id="analysis-bars" aria-label="Grafik asupan kalori tujuh hari"></div>
+      </div>
+      <div class="disclaimer" style="margin-top:16px"><span aria-hidden="true">✦</span><span>Analisis ini membantu mengenali pola, bukan menilai keberhasilan atau kegagalan. Target bukan pengganti saran tenaga kesehatan.</span></div>
+    </section>
+
+    <section class="view" id="profile-view" aria-labelledby="profile-heading">
+      <div class="page-heading"><div><h1 id="profile-heading">Profil</h1><p class="subtitle">Kelola target dan preferensi pribadimu.</p></div></div>
+      <div class="card profile-card">
+        <h2>Profil & target harian</h2><p class="subtitle">Informasi ini tersimpan di perangkat yang kamu gunakan.</p>
+        <div class="profile-kpis">
+          <div class="mini-stat"><span>Kalori harian</span><strong class="numeric" id="profile-calories">2.100 kkal</strong></div>
+          <div class="mini-stat"><span>Tujuan</span><strong id="profile-goal">Belum diatur</strong></div>
+          <div class="mini-stat"><span>Data tubuh</span><strong id="profile-body">Opsional</strong></div>
+        </div>
+        <button class="button button-primary" id="profile-edit">Atur profil & target</button>
+        <p class="subtitle" style="margin-top:20px"><strong>Privasi:</strong> Jurnal disimpan lokal di browser ini. Tidak ada akun atau sinkronisasi cloud pada versi satu-file ini.</p>
+      </div>
+      <div class="disclaimer" style="margin-top:16px"><span aria-hidden="true">ⓘ</span><span>NutriPulse bukan alat diagnosis atau terapi. Bila kamu memiliki kondisi medis, sedang hamil/menyusui, atau berusia di bawah 18 tahun, diskusikan kebutuhan gizi dengan tenaga kesehatan.</span></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Navigasi utama">
+    <div class="nav-inner">
+      <button class="nav-button" data-view="daily-view" aria-current="page"><span class="nav-icon" aria-hidden="true">▦</span>Harian</button>
+      <button class="nav-button" data-view="calculator-card"><span class="nav-icon" aria-hidden="true">⊞</span>Kalkulator</button>
+      <button class="nav-button" data-view="analysis-view"><span class="nav-icon" aria-hidden="true">⌁</span>Analisis</button>
+      <button class="nav-button" data-view="profile-view"><span class="nav-icon" aria-hidden="true">◉</span>Profil</button>
+    </div>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal-backdrop" id="setup-modal" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+      <div class="modal-head"><div><h2 id="setup-title">Mulai dari kebutuhanmu</h2><p class="subtitle">Isi data untuk perkiraan target awal yang lebih personal.</p></div><button class="modal-close" id="setup-close" aria-label="Tutup">×</button></div>
+      <form id="setup-form">
+        <div class="form-grid">
+          <div class="form-field"><label for="setup-sex">Jenis kelamin untuk rumus</label><select id="setup-sex"><option value="female">Wanita</option><option value="male">Pria</option></select></div>
+          <div class="form-field"><label for="setup-age">Usia (tahun)</label><input id="setup-age" type="number" min="14" max="100" placeholder="Contoh: 27"></div>
+          <div class="form-field"><label for="setup-height">Tinggi (cm)</label><input id="setup-height" type="number" min="100" max="250" placeholder="Contoh: 160"></div>
+          <div class="form-field"><label for="setup-weight">Berat (kg)</label><input id="setup-weight" type="number" min="25" max="300" step=".1" placeholder="Contoh: 60"></div>
+          <div class="form-field full"><label for="setup-activity">Tingkat aktivitas</label><select id="setup-activity"><option value="1.2">Sangat jarang bergerak</option><option value="1.375" selected>Ringan · olahraga 1–3×/minggu</option><option value="1.55">Sedang · olahraga 3–5×/minggu</option><option value="1.725">Aktif · olahraga 6–7×/minggu</option><option value="1.9">Sangat aktif</option></select></div>
+          <div class="form-field full"><label for="setup-goal">Tujuan</label><select id="setup-goal"><option value="maintain">Menjaga berat badan</option><option value="lose">Menurunkan berat badan</option><option value="gain">Menaikkan berat / otot</option></select></div>
+        </div>
+        <p class="helper" style="margin:12px 0 0">Estimasi menggunakan rumus Mifflin–St Jeor dan faktor aktivitas. Ini bukan rekomendasi medis; hasil perlu divalidasi tenaga ahli.</p>
+        <p class="message" id="setup-message" role="alert"></p>
+        <div class="modal-actions"><button type="button" class="button button-soft" id="skip-setup">Lewati dulu</button><button class="button button-primary" type="submit">Hitung target</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="target-modal" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="target-title">
+      <div class="modal-head"><div><h2 id="target-title">Atur target harian</h2><p class="subtitle">Sesuaikan kebutuhanmu. Perubahan target berlaku mulai hari ini.</p></div><button class="modal-close" data-close="target-modal" aria-label="Tutup">×</button></div>
+      <form id="target-form">
+        <label class="field-label" for="target-calorie-input">Target kalori</label>
+        <div class="stepper" style="justify-content:flex-start"><input class="number-input numeric" id="target-calorie-input" type="number" min="800" max="6000" step="50" style="width:145px"><span class="gram-label">kkal / hari</span></div>
+        <input type="range" class="target-slider" id="target-calorie-range" min="800" max="6000" step="50" aria-label="Geser target kalori 800 hingga 6000 kkal">
+        <div class="range-ends"><span>800 kkal</span><span>6.000 kkal</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 9px"><span class="field-label" style="margin:0">Target makro</span><div class="segmented" aria-label="Satuan makro"><button type="button" data-unit="grams" aria-pressed="true">Gram</button><button type="button" data-unit="percent" aria-pressed="false">Persentase</button></div></div>
+        <div class="form-grid">
+          <div class="form-field"><label for="target-protein">Protein <span id="protein-unit">(g)</span></label><input id="target-protein" type="number" min="0" max="1000" step="0.1"></div>
+          <div class="form-field"><label for="target-carbs">Karbohidrat <span id="carbs-unit">(g)</span></label><input id="target-carbs" type="number" min="0" max="1000" step="0.1"></div>
+          <div class="form-field"><label for="target-fat">Lemak <span id="fat-unit">(g)</span></label><input id="target-fat" type="number" min="0" max="1000" step="0.1"></div>
+          <div class="form-field"><label>Mode</label><div class="helper" style="padding:12px 0">Gram atau persen kalori</div></div>
+        </div>
+        <div class="target-total" id="macro-total">Makro menyumbang <strong>—</strong> dari target kalori.</div>
+        <p class="helper" style="margin:10px 0 0">Angka di bawah 1.200 kkal untuk wanita dewasa atau 1.500 kkal untuk pria dewasa perlu kehati-hatian dan konsultasi tenaga kesehatan.</p>
+        <p class="message" id="target-message" role="alert"></p>
+        <div class="modal-actions" style="justify-content:space-between"><button type="button" class="button button-soft" id="reset-target">Reset ke rekomendasi</button><div style="display:flex;gap:8px"><button type="button" class="button button-soft" data-close="target-modal">Batal</button><button class="button button-primary" type="submit">Simpan target</button></div></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="custom-food-modal" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="custom-title">
+      <div class="modal-head"><div><h2 id="custom-title">Buat makanan kustom</h2><p class="subtitle">Masukkan nilai yang diketahui per 100 gram.</p></div><button class="modal-close" data-close="custom-food-modal" aria-label="Tutup">×</button></div>
+      <form id="custom-food-form">
+        <div class="form-grid">
+          <div class="form-field full"><label for="custom-name">Nama makanan</label><input id="custom-name" required maxlength="60" placeholder="Contoh: Perkedel kentang rumahan"></div>
+          <div class="form-field"><label for="custom-cal">Kalori (kkal)</label><input id="custom-cal" type="number" min="0" max="900" step=".1" required></div>
+          <div class="form-field"><label for="custom-pro">Protein (g)</label><input id="custom-pro" type="number" min="0" max="100" step=".1" required></div>
+          <div class="form-field"><label for="custom-carb">Karbohidrat (g)</label><input id="custom-carb" type="number" min="0" max="100" step=".1" required></div>
+          <div class="form-field"><label for="custom-fat">Lemak (g)</label><input id="custom-fat" type="number" min="0" max="100" step=".1" required></div>
+        </div>
+        <p class="helper" style="margin-top:11px">Nilai makanan kustom hanya tersimpan di browser ini dan belum diverifikasi.</p>
+        <p class="message" id="custom-message" role="alert"></p>
+        <div class="modal-actions"><button type="button" class="button button-soft" data-close="custom-food-modal">Batal</button><button class="button button-primary" type="submit">Simpan makanan</button></div>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const foods = [
+        { name:"Nasi putih", aliases:["nasi","nasi putih matang"], calories:130, protein:2.7, carbs:28.2, fat:.3 },
+        { name:"Nasi merah", aliases:["beras merah"], calories:110, protein:2.6, carbs:23, fat:.9 },
+        { name:"Dada ayam panggang", aliases:["ayam panggang","dada ayam"], calories:165, protein:31, carbs:0, fat:3.6 },
+        { name:"Ayam rebus", aliases:["ayam kukus"], calories:151, protein:28, carbs:0, fat:3.5 },
+        { name:"Telur rebus", aliases:["telur matang","telur"], calories:155, protein:13, carbs:1.1, fat:11 },
+        { name:"Tempe goreng", aliases:["tempe"], calories:193, protein:19, carbs:9, fat:11 },
+        { name:"Tempe kukus", aliases:["tempe rebus"], calories:150, protein:18.5, carbs:8, fat:7 },
+        { name:"Tahu putih", aliases:["tahu"], calories:76, protein:8, carbs:1.9, fat:4.8 },
+        { name:"Ikan kembung bakar", aliases:["ikan kembung"], calories:167, protein: fishProtein(), carbs:0, fat:8.5 },
+        { name:"Salmon panggang", aliases:["salmon"], calories:206, protein:22, carbs:0, fat:12 },
+        { name:"Tumis kangkung", aliases:["kangkung"], calories:98, protein:3, carbs:7, fat:6 },
+        { name:"Brokoli kukus", aliases:["brokoli"], calories:35, protein:2.4, carbs:7.2, fat:.4 },
+        { name:"Bayam rebus", aliases:["bayam"], calories:23, protein:2.9, carbs:3.6, fat:.4 },
+        { name:"Oatmeal", aliases:["oat","oatmeal buah segar"], calories:95, protein:4.2, carbs:17, fat:1.8 },
+        { name:"Roti gandum", aliases:["roti gandum utuh"], calories:247, protein:13, carbs:41, fat:4.2 },
+        { name:"Pisang", aliases:["pisang cavendish","pisang ambon"], calories:89, protein:1.1, carbs:23, fat:.3 },
+        { name:"Alpukat", aliases:["alpukat mentega"], calories:160, protein:2, carbs:9, fat:15 },
+        { name:"Apel", aliases:["apel merah"], calories:52, protein:.3, carbs:14, fat:.2 },
+        { name:"Pepaya", aliases:["buah pepaya"], calories:43, protein:.5, carbs:11, fat:.3 },
+        { name:"Greek yogurt plain", aliases:["yogurt greek","yogurt"], calories:73, protein:10, carbs:4, fat:2 },
+        { name:"Susu rendah lemak", aliases:["susu low fat"], calories:42, protein:3.4, carbs:5, fat:1 },
+        { name:"Kacang tanah rebus", aliases:["kacang rebus"], calories:318, protein:13.5, carbs:21, fat:22 },
+        { name:"Kentang rebus", aliases:["kentang"], calories:87, protein:1.9, carbs:20, fat:.1 },
+        { name:"Ubi jalar kukus", aliases:["ubi kukus"], calories:86, protein:1.6, carbs:20, fat:.1 },
+        { name:"Jagung rebus", aliases:["jagung"], calories:96, protein:3.4, carbs:21, fat:1.5 },
+        { name:"Soto ayam", aliases:["soto"], calories:101, protein:7, carbs:8, fat:4 },
+        { name:"Gado-gado", aliases:["gado gado"], calories:132, protein:6, carbs:14, fat:6 },
+        { name:"Rendang sapi", aliases:["rendang"], calories:193, protein:22, carbs:4, fat:10 },
+        { name:"Tahu goreng", aliases:["tahu crispy"], calories:271, protein:17, carbs:9, fat:20 },
+        { name:"Udang rebus", aliases:["udang"], calories:99, protein:24, carbs:.2, fat:.3 },
+        { name:"Edamame rebus", aliases:["edamame"], calories:121, protein:12, carbs:9, fat:5 }
+      ];
+      function fishProtein() { return 19; }
+
+      const meals = [
+        { id:"sarapan", title:"Sarapan Pagi", icon:"☀", subtitle:"Awali hari dengan nyaman", share:.25 },
+        { id:"siang", title:"Makan Siang", icon:"◉", subtitle:"Isi energi di tengah hari", share:.35 },
+        { id:"malam", title:"Makan Malam", icon:"☾", subtitle:"Penuhi kebutuhan harianmu", share:.30 },
+        { id:"snack", title:"Camilan", icon:"✿", subtitle:"Kudapan di sela waktu makan", share:.10 }
+      ];
+      const defaultTarget = { calories:2100, protein:120, carbs:260, fat:65 };
+      const storageKey = "nutripulse-onefile-v1";
+      const today = dateString(new Date());
+      let state = loadState();
+      let selectedFood = null;
+      let portion = 150;
+      let activeMeal = mealFromHour(new Date().getHours());
+      let editingId = null;
+      let macroUnit = "grams";
+      let recommendation = { ...state.target };
+      let toastTimer;
+      let undoRecord = null;
+      let modalScrollY = 0;
+
+      const $ = (id) => document.getElementById(id);
+      const dateInput = $("selected-date");
+      dateInput.max = today;
+      dateInput.min = dateString(daysAgo(new Date(),30));
+      dateInput.value = today;
+
+      function dateString(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth()+1).padStart(2,"0");
+        const d = String(date.getDate()).padStart(2,"0");
+        return `${y}-${m}-${d}`;
+      }
+      function daysAgo(date, days) {
+        const result = new Date(date);
+        result.setDate(result.getDate()-days);
+        return result;
+      }
+      function mealFromHour(hour) {
+        if (hour >= 5 && hour < 11) return "sarapan";
+        if (hour >= 11 && hour < 16) return "siang";
+        if (hour >= 16 && hour < 22) return "malam";
+        return "snack";
+      }
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (!raw) return { target:{...defaultTarget}, recommendation:{...defaultTarget}, profile:null, entries:{}, snapshots:{}, customFoods:[], onboarded:false };
+          const saved = JSON.parse(raw);
+          return {
+            target: validTarget(saved.target) ? saved.target : {...defaultTarget},
+            recommendation: validTarget(saved.recommendation) ? saved.recommendation : {...defaultTarget},
+            profile: saved.profile && typeof saved.profile === "object" ? saved.profile : null,
+            entries: saved.entries && typeof saved.entries === "object" ? saved.entries : {},
+            snapshots: saved.snapshots && typeof saved.snapshots === "object" ? saved.snapshots : {},
+            customFoods: Array.isArray(saved.customFoods) ? saved.customFoods : [],
+            onboarded: saved.onboarded === true
+          };
+        } catch (error) {
+          console.error("Data NutriPulse tidak dapat dibaca dari penyimpanan lokal.", error);
+          setTimeout(() => showToast("Data lokal tidak dapat dibaca. Periksa pengaturan browser."), 0);
+          return { target:{...defaultTarget}, recommendation:{...defaultTarget}, profile:null, entries:{}, snapshots:{}, customFoods:[], onboarded:false };
+        }
+      }
+      function validTarget(target) {
+        return target && Number.isFinite(Number(target.calories)) && Number.isFinite(Number(target.protein)) && Number.isFinite(Number(target.carbs)) && Number.isFinite(Number(target.fat));
+      }
+      function saveState() {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(state));
+          return true;
+        } catch (error) {
+          console.error("Data NutriPulse gagal disimpan.", error);
+          showToast("Penyimpanan browser gagal. Pastikan ruang penyimpanan tersedia.");
+          return false;
+        }
+      }
+      function fmt(value, digits=0) {
+        return new Intl.NumberFormat("id-ID",{ maximumFractionDigits:digits, minimumFractionDigits:digits }).format(Number(value)||0);
+      }
+      function escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+      }
+      function currentDate() { return dateInput.value || today; }
+      function dayEntries(date=currentDate()) { return Array.isArray(state.entries[date]) ? state.entries[date] : []; }
+      function dayTarget(date=currentDate()) { return state.snapshots[date] || state.target; }
+      function nutrition(food, grams) {
+        const ratio = grams/100;
+        return { calories:Math.round(food.calories*ratio), protein:food.protein*ratio, carbs:food.carbs*ratio, fat:food.fat*ratio };
+      }
+      function getAllFoods() { return [...foods, ...state.customFoods]; }
+      function normalize(text) { return String(text||"").toLocaleLowerCase("id-ID").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
+
+      function showToast(text, undo) {
+        const toast = $("toast");
+        toast.innerHTML = `<span>${escapeHTML(text)}</span>${undo ? '<button type="button" id="undo-delete">Urungkan</button>' : ""}`;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        if (undo) $("undo-delete").addEventListener("click",undo);
+        toastTimer = setTimeout(()=>toast.classList.remove("show"), undo ? 5000 : 2200);
+      }
+      function openModal(id) {
+        if (!document.querySelector(".modal-backdrop.open")) modalScrollY=window.scrollY;
+        document.body.classList.add("modal-open");
+        $(id).classList.add("open");
+        const focusable = $(id).querySelector("input,select,button");
+        if (focusable) setTimeout(()=>focusable.focus(),30);
+      }
+      function closeModal(id) {
+        $(id).classList.remove("open");
+        if (!document.querySelector(".modal-backdrop.open")) {
+          document.body.classList.remove("modal-open");
+          window.scrollTo(0,modalScrollY);
+        }
+      }
+      function setMeal(id) {
+        if (!meals.some((meal)=>meal.id===id)) return;
+        activeMeal = id;
+        document.querySelectorAll(".meal-switch [data-meal]").forEach((button)=>{
+          button.setAttribute("aria-checked",String(button.dataset.meal===id));
+        });
+      }
+      function renderPreview() {
+        const values = selectedFood ? nutrition(selectedFood,portion) : null;
+        $("preview-calories").textContent = values ? fmt(values.calories) : "—";
+        $("preview-protein").textContent = values ? fmt(values.protein,1) : "—";
+        $("preview-carbs").textContent = values ? fmt(values.carbs,1) : "—";
+        $("preview-fat").textContent = values ? fmt(values.fat,1) : "—";
+        $("food-source").textContent = selectedFood
+          ? (selectedFood.custom ? "Makanan kustom · nilai dimasukkan pengguna, belum diverifikasi." : "Estimasi per 100 g · nilai contoh, perlu diverifikasi terhadap sumber resmi.")
+          : "Pilih makanan yang tersedia untuk melihat estimasi per porsi.";
+        $("add-to-journal").disabled = !selectedFood;
+      }
+      function searchFood() {
+        const query = normalize($("food-search").value);
+        const box = $("food-suggestions");
+        const notFound = $("food-not-found");
+        if (selectedFood && query !== normalize(selectedFood.name)) selectedFood = null;
+        if (query.length < 2) {
+          box.classList.add("hidden");
+          notFound.classList.add("hidden");
+          renderPreview();
+          return;
+        }
+        const matches = getAllFoods().map((food)=>{
+          const name = normalize(food.name);
+          const aliases = (food.aliases||[]).map(normalize);
+          let rank = 99;
+          if (name===query || aliases.includes(query)) rank=0;
+          else if (name.startsWith(query) || aliases.some((alias)=>alias.startsWith(query))) rank=1;
+          else if (name.includes(query) || aliases.some((alias)=>alias.includes(query))) rank=2;
+          return { food, rank };
+        }).filter((item)=>item.rank<99).sort((a,b)=>a.rank-b.rank || a.food.name.localeCompare(b.food.name,"id")).slice(0,7);
+        box.replaceChildren();
+        if (matches.length) {
+          matches.forEach(({food})=>{
+            const option = document.createElement("button");
+            option.type="button"; option.className="suggestion"; option.setAttribute("role","option");
+            option.innerHTML=`<strong>${escapeHTML(food.name)}</strong><small>${fmt(food.calories)} kkal / 100 g</small>`;
+            option.addEventListener("click",()=>selectFood(food));
+            box.append(option);
+          });
+          box.classList.remove("hidden");
+          notFound.classList.add("hidden");
+        } else {
+          box.classList.add("hidden");
+          notFound.classList.remove("hidden");
+        }
+        renderPreview();
+      }
+      function selectFood(food) {
+        selectedFood=food;
+        $("food-search").value=food.name;
+        $("food-suggestions").classList.add("hidden");
+        $("food-not-found").classList.add("hidden");
+        renderPreview();
+      }
+      function setPortion(value, fromRange=false) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return;
+        portion = Math.min(5000,Math.max(1,Math.round(parsed)));
+        $("portion-input").value=String(portion);
+        if (!fromRange) $("portion-range").value=String(Math.min(400,Math.max(20,Math.round(portion/10)*10)));
+        renderPreview();
+      }
+      function renderSummary() {
+        const entries=dayEntries();
+        const target=dayTarget();
+        const total=entries.reduce((sum,entry)=>{
+          sum.calories+=Number(entry.calories)||0;
+          sum.protein+=Number(entry.protein)||0;
+          sum.carbs+=Number(entry.carbs)||0;
+          sum.fat+=Number(entry.fat)||0;
+          return sum;
+        },{calories:0,protein:0,carbs:0,fat:0});
+        const percent=Math.round(total.calories/target.calories*100);
+        $("consumed-calories").textContent=fmt(total.calories);
+        $("target-calories").textContent=fmt(target.calories);
+        $("calorie-percent").textContent=`${percent}%`;
+        $("calorie-ring").setAttribute("aria-label",`${percent} persen dari target kalori`);
+        const circumference=2*Math.PI*49;
+        $("ring-value").style.strokeDashoffset=String(circumference*(1-Math.min(100,Math.max(0,total.calories/target.calories*100))/100));
+        const status=$("calorie-status");
+        status.classList.toggle("over",total.calories>target.calories);
+        const remaining=target.calories-total.calories;
+        $("status-copy").textContent=remaining>=0 ? `${fmt(remaining)} kkal tersisa` : `Kamu ${fmt(Math.abs(remaining))} kkal di atas target hari ini`;
+        const macroFields=[
+          ["protein",total.protein,target.protein,"protein"],
+          ["carbs",total.carbs,target.carbs,"carbs"],
+          ["fat",total.fat,target.fat,"fat"]
+        ];
+        macroFields.forEach(([key,value,goal,prefix])=>{
+          const rounded=Math.round(value);
+          const macroPercent=goal>0?Math.round(value/goal*100):0;
+          $(`${prefix}-current`).textContent=fmt(rounded);
+          $(`${prefix}-target`).textContent=fmt(goal);
+          $(`${prefix}-percent`).textContent=fmt(macroPercent);
+          $(`${prefix}-fill`).style.width=`${Math.min(100,Math.max(0,macroPercent))}%`;
+          const track=$(`${prefix}-fill`).parentElement;
+          track.setAttribute("aria-valuemax",String(goal));
+          track.setAttribute("aria-valuenow",String(Math.round(value)));
+        });
+        $("journal-date-label").textContent=currentDate()===today ? "Rincian asupan hari ini" : `Rincian asupan ${new Intl.DateTimeFormat("id-ID",{dateStyle:"long"}).format(new Date(`${currentDate()}T12:00:00`))}`;
+        $("summary-label").textContent=currentDate()===today ? "Ringkasan Hari Ini" : "Ringkasan Tanggal Pilihan";
+        renderMeals(entries,target);
+        updateProfile();
+        renderAnalysis();
+      }
+      function renderMeals(entries,target) {
+        const list=$("meal-list");
+        list.replaceChildren();
+        meals.forEach((meal)=>{
+          const foodEntries=entries.filter((entry)=>entry.meal===meal.id).sort((a,b)=>a.createdAt-b.createdAt);
+          const calories=foodEntries.reduce((sum,entry)=>sum+(Number(entry.calories)||0),0);
+          const idealLow=Math.round(target.calories*meal.share*.85);
+          const idealHigh=Math.round(target.calories*meal.share*1.15);
+          const card=document.createElement("article");
+          card.className="card meal-card";
+          const heading=document.createElement("div");
+          heading.className="meal-heading";
+          heading.innerHTML=`<div class="meal-label"><span class="meal-icon" aria-hidden="true">${meal.icon}</span><div><h3>${meal.title}</h3><p class="meal-sub">Target ideal: ${fmt(idealLow)}–${fmt(idealHigh)} kkal</p></div></div><div class="meal-total"><strong class="numeric">${fmt(calories)}</strong><span>kkal</span></div>`;
+          card.append(heading);
+          if (foodEntries.length) {
+            const items=document.createElement("div"); items.className="meal-items";
+            foodEntries.forEach((entry)=>{
+              const row=document.createElement("div"); row.className="food-row";
+              row.innerHTML=`<div class="food-detail"><span class="food-name">${escapeHTML(entry.name)} · ${fmt(entry.grams)} g</span><div class="food-meta">P ${fmt(entry.protein,1)} g · K ${fmt(entry.carbs,1)} g · L ${fmt(entry.fat,1)} g</div></div><div class="food-actions"><span class="food-kcal numeric">${fmt(entry.calories)} kkal</span><button class="tiny-button" type="button" data-edit="${escapeHTML(entry.id)}" aria-label="Ubah ${escapeHTML(entry.name)}" title="Ubah porsi">✎</button><button class="tiny-button delete" type="button" data-delete="${escapeHTML(entry.id)}" aria-label="Hapus ${escapeHTML(entry.name)}" title="Hapus">×</button></div>`;
+              items.append(row);
+            });
+            card.append(items);
+          } else {
+            const empty=document.createElement("div"); empty.className="meal-empty";
+            empty.textContent=meal.id==="snack"?"Belum ada camilan tercatat. Tambahkan jika kamu menikmatinya.":"Belum ada makanan tercatat untuk waktu ini.";
+            card.append(empty);
+          }
+          const add=document.createElement("button");
+          add.type="button"; add.className="meal-add"; add.dataset.addMeal=meal.id;
+          add.textContent=`＋ Tambah ${meal.title}`;
+          card.append(add);
+          list.append(card);
+        });
+      }
+      function updateProfile() {
+        $("profile-calories").textContent=`${fmt(state.target.calories)} kkal`;
+        $("profile-goal").textContent=state.profile?.goalLabel||"Belum diatur";
+        $("profile-body").textContent=state.profile?.age?`${fmt(state.profile.age)} th · ${fmt(state.profile.height)} cm · ${fmt(state.profile.weight,1)} kg`:"Opsional";
+        $("profile-shortcut").textContent=state.profile?.name ? state.profile.name.trim().charAt(0).toUpperCase() : "N";
+      }
+      function renderAnalysis() {
+        const days=Array.from({length:7},(_,index)=>daysAgo(new Date(`${today}T12:00:00`),6-index));
+        const daily=days.map((date)=>{
+          const key=dateString(date);
+          const entries=Array.isArray(state.entries[key])?state.entries[key]:[];
+          return {date,key, calories:entries.reduce((sum,item)=>sum+(Number(item.calories)||0),0), protein:entries.reduce((sum,item)=>sum+(Number(item.protein)||0),0), count:entries.length};
+        });
+        const logged=daily.filter((day)=>day.count>0);
+        $("logged-days").textContent=`${logged.length} / 7`;
+        $("avg-calories").textContent=logged.length?`${fmt(logged.reduce((sum,day)=>sum+day.calories,0)/logged.length)} kkal`:"—";
+        $("avg-protein").textContent=logged.length?`${fmt(logged.reduce((sum,day)=>sum+day.protein,0)/logged.length,1)} g`:"—";
+        const maxValue=Math.max(state.target.calories,...daily.map((day)=>day.calories),1);
+        const bars=$("analysis-bars"); bars.replaceChildren();
+        daily.forEach((day)=>{
+          const column=document.createElement("div"); column.className="bar-column";
+          const value=document.createElement("span"); value.className="bar-value numeric"; value.textContent=day.count?fmt(day.calories):"";
+          const bar=document.createElement("div"); bar.className="bar"; bar.style.height=day.count?`${Math.max(3,Math.min(100,day.calories/maxValue*100))}%`:"3px"; bar.setAttribute("aria-label",day.count?`${fmt(day.calories)} kkal`:"Tidak ada catatan");
+          const label=document.createElement("span"); label.className="bar-label"; label.textContent=new Intl.DateTimeFormat("id-ID",{weekday:"short"}).format(day.date).replace(".","");
+          column.append(value,bar,label); bars.append(column);
+        });
+      }
+      function refresh() { renderSummary(); saveState(); }
+      function scrollToCalculator(mealId) {
+        if (mealId) setMeal(mealId);
+        document.querySelector(".nav-button[data-view='daily-view']").setAttribute("aria-current","page");
+        document.querySelectorAll(".view").forEach((view)=>view.classList.toggle("active",view.id==="daily-view"));
+        $("calculator-card").scrollIntoView({behavior:"smooth",block:"center"});
+        $("food-search").focus({preventScroll:true});
+      }
+
+      document.querySelectorAll(".meal-switch [data-meal]").forEach((button)=>{
+        button.addEventListener("click",()=>setMeal(button.dataset.meal));
+        button.addEventListener("keydown",(event)=>{
+          if (!["ArrowRight","ArrowLeft"].includes(event.key)) return;
+          event.preventDefault();
+          const buttons=[...document.querySelectorAll(".meal-switch [data-meal]")];
+          const index=buttons.indexOf(button);
+          const next=buttons[(index+(event.key==="ArrowRight"?1:-1)+buttons.length)%buttons.length];
+          setMeal(next.dataset.meal); next.focus();
+        });
+      });
+      $("food-search").addEventListener("input",searchFood);
+      $("food-search").addEventListener("keydown",(event)=>{
+        if(event.key==="Escape") $("food-suggestions").classList.add("hidden");
+        if(event.key==="Enter" && !$("food-suggestions").classList.contains("hidden")) {
+          const first=$("food-suggestions").querySelector("button");
+          if(first){ event.preventDefault(); first.click(); }
+        }
+      });
+      $("portion-input").addEventListener("input",(event)=>setPortion(event.target.value));
+      $("portion-input").addEventListener("change",(event)=>setPortion(event.target.value));
+      $("portion-range").addEventListener("input",(event)=>setPortion(event.target.value,true));
+      $("portion-minus").addEventListener("click",()=>setPortion(portion-10));
+      $("portion-plus").addEventListener("click",()=>setPortion(portion+10));
+      $("create-custom-food").addEventListener("click",()=>{
+        $("custom-name").value=$("food-search").value.trim();
+        $("custom-message").textContent="";
+        openModal("custom-food-modal");
+      });
+      $("custom-food-form").addEventListener("submit",(event)=>{
+        event.preventDefault();
+        const name=$("custom-name").value.trim();
+        const duplicate=getAllFoods().some((food)=>normalize(food.name)===normalize(name));
+        if(duplicate){ $("custom-message").textContent="Nama makanan ini sudah tersedia. Pilih hasil pencarian yang ada."; return; }
+        const custom={
+          name, aliases:[], custom:true,
+          calories:Number($("custom-cal").value), protein:Number($("custom-pro").value),
+          carbs:Number($("custom-carb").value), fat:Number($("custom-fat").value)
+        };
+        state.customFoods.push(custom);
+        saveState(); closeModal("custom-food-modal"); selectFood(custom); showToast("Makanan kustom tersimpan di perangkat ini.");
+      });
+      $("add-to-journal").addEventListener("click",()=>{
+        if(!selectedFood) return;
+        if(!state.snapshots[currentDate()]) state.snapshots[currentDate()]={...state.target};
+        const values=nutrition(selectedFood,portion);
+        const existing=editingId ? dayEntries().find((item)=>item.id===editingId) : null;
+        const entry={
+          id:editingId||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+          name:selectedFood.name, grams:portion, ...values, meal:activeMeal,
+          createdAt:existing?.createdAt||Date.now()
+        };
+        const entries=dayEntries();
+        if(editingId) {
+          const index=entries.findIndex((item)=>item.id===editingId);
+          if(index>=0) entries[index]=entry;
+        } else entries.push(entry);
+        state.entries[currentDate()]=entries;
+        editingId=null;
+        $("add-to-journal").innerHTML="＋ Tambahkan ke jurnal";
+        $("calc-message").textContent="";
+        refresh(); showToast(existing?"Perubahan makanan berhasil disimpan.":"Makanan berhasil ditambahkan.");
+      });
+      $("meal-list").addEventListener("click",(event)=>{
+        const add=event.target.closest("[data-add-meal]");
+        if(add){ scrollToCalculator(add.dataset.addMeal); return; }
+        const edit=event.target.closest("[data-edit]");
+        if(edit){
+          const entry=dayEntries().find((item)=>item.id===edit.dataset.edit);
+          if(!entry) return;
+          const food=getAllFoods().find((item)=>normalize(item.name)===normalize(entry.name)) || { name:entry.name, calories:entry.calories*100/entry.grams, protein:entry.protein*100/entry.grams, carbs:entry.carbs*100/entry.grams, fat:entry.fat*100/entry.grams, custom:true };
+          editingId=entry.id; setMeal(entry.meal); setPortion(entry.grams); selectFood(food);
+          $("add-to-journal").textContent="Simpan perubahan";
+          scrollToCalculator(entry.meal);
+          return;
+        }
+        const remove=event.target.closest("[data-delete]");
+        if(remove){
+          const entries=dayEntries(); const index=entries.findIndex((item)=>item.id===remove.dataset.delete);
+          if(index<0) return;
+          const [deleted]=entries.splice(index,1);
+          undoRecord={date:currentDate(),entry:deleted,index};
+          state.entries[currentDate()]=entries;
+          refresh();
+          showToast("Catatan dihapus.",()=>{
+            if(!undoRecord) return;
+            const restore=state.entries[undoRecord.date]||(state.entries[undoRecord.date]=[]);
+            restore.splice(Math.min(undoRecord.index,restore.length),0,undoRecord.entry);
+            undoRecord=null; refresh(); $("toast").classList.remove("show");
+          });
+          return;
+        }
+      });
+      $("selected-date").addEventListener("change",()=>{
+        if(currentDate()<dateString(daysAgo(new Date(),30)) || currentDate()>today) {
+          dateInput.value=today; showToast("Jurnal hanya dapat dibuka untuk hari ini atau 30 hari terakhir."); return;
+        }
+        editingId=null; $("add-to-journal").textContent="＋ Tambahkan ke jurnal"; renderSummary();
+      });
+      $("prev-day").addEventListener("click",()=>{
+        const next=daysAgo(new Date(`${currentDate()}T12:00:00`),1);
+        if(dateString(next)<dateInput.min){showToast("Batas pencatatan lampau adalah 30 hari.");return;}
+        dateInput.value=dateString(next); renderSummary();
+      });
+      $("next-day").addEventListener("click",()=>{
+        const next=new Date(`${currentDate()}T12:00:00`); next.setDate(next.getDate()+1);
+        if(dateString(next)>today){showToast("Tanggal yang dipilih tidak boleh melewati hari ini.");return;}
+        dateInput.value=dateString(next); renderSummary();
+      });
+      $("today-button").addEventListener("click",()=>{dateInput.value=today;renderSummary();});
+
+      document.querySelectorAll(".nav-button").forEach((button)=>{
+        button.addEventListener("click",()=>{
+          document.querySelectorAll(".nav-button").forEach((item)=>item.removeAttribute("aria-current"));
+          button.setAttribute("aria-current","page");
+          const target=button.dataset.view;
+          if(target==="calculator-card") { scrollToCalculator(); return; }
+          document.querySelectorAll(".view").forEach((view)=>view.classList.toggle("active",view.id===target));
+          window.scrollTo({top:0,behavior:"smooth"});
+          if(target==="analysis-view") renderAnalysis();
+        });
+      });
+      $("profile-shortcut").addEventListener("click",()=>document.querySelector(".nav-button[data-view='profile-view']").click());
+      $("open-target").addEventListener("click",()=>openTargetModal());
+      $("quick-log").addEventListener("click",()=>scrollToCalculator());
+      $("profile-edit").addEventListener("click",()=>{
+        $("setup-title").textContent="Perbarui profilmu";
+        if(state.profile) {
+          $("setup-sex").value=state.profile.sex;
+          $("setup-age").value=state.profile.age;
+          $("setup-height").value=state.profile.height;
+          $("setup-weight").value=state.profile.weight;
+          $("setup-activity").value=String(state.profile.activity);
+          $("setup-goal").value=state.profile.goal;
+        }
+        $("setup-message").textContent="";
+        openModal("setup-modal");
+      });
+
+      function openTargetModal() {
+        macroUnit="grams";
+        document.querySelectorAll("[data-unit]").forEach((button)=>button.setAttribute("aria-pressed",String(button.dataset.unit==="grams")));
+        $("target-calorie-input").value=state.target.calories;
+        $("target-calorie-range").value=state.target.calories;
+        $("target-protein").value=state.target.protein;
+        $("target-carbs").value=state.target.carbs;
+        $("target-fat").value=state.target.fat;
+        $("target-message").textContent="";
+        updateMacroTotal(); openModal("target-modal");
+      }
+      function setMacroMode(unit) {
+        if(unit===macroUnit) return;
+        const calories=Number($("target-calorie-input").value)||state.target.calories;
+        const fields=[["protein","target-protein",4],["carbs","target-carbs",4],["fat","target-fat",9]];
+        fields.forEach(([key,id,factor])=>{
+          const value=Number($(id).value)||0;
+          $(id).value=unit==="percent"?(value*factor/calories*100).toFixed(1):String(Math.round(value*calories/100/factor));
+        });
+        macroUnit=unit;
+        document.querySelectorAll("[data-unit]").forEach((button)=>button.setAttribute("aria-pressed",String(button.dataset.unit===unit)));
+        $("protein-unit").textContent=unit==="grams"?"(g)":"(%)";
+        $("carbs-unit").textContent=unit==="grams"?"(g)":"(%)";
+        $("fat-unit").textContent=unit==="grams"?"(g)":"(%)";
+        updateMacroTotal();
+      }
+      function macroValuesInGrams() {
+        const calories=Number($("target-calorie-input").value)||0;
+        const factor=macroUnit==="percent"?calories/100:1;
+        return {
+          protein:Number($("target-protein").value)*factor/(macroUnit==="percent"?4:1),
+          carbs:Number($("target-carbs").value)*factor/(macroUnit==="percent"?4:1),
+          fat:Number($("target-fat").value)*factor/(macroUnit==="percent"?9:1)
+        };
+      }
+      function updateMacroTotal() {
+        const values=macroValuesInGrams();
+        const calories=values.protein*4+values.carbs*4+values.fat*9;
+        const goal=Number($("target-calorie-input").value)||0;
+        const difference=goal?Math.abs(calories-goal)/goal*100:0;
+        $("macro-total").innerHTML=`Makro menyumbang <strong>${fmt(calories)} kkal</strong> (${goal?fmt(difference,1):"0"}% selisih) dari target kalori.${difference>5?' <span style="color:#89572a">Komposisi makro berbeda lebih dari 5%; sesuaikan bila perlu.</span>':""}`;
+      }
+      document.querySelectorAll("[data-unit]").forEach((button)=>button.addEventListener("click",()=>setMacroMode(button.dataset.unit)));
+      $("target-calorie-range").addEventListener("input",(event)=>{$("target-calorie-input").value=event.target.value;updateMacroTotal();});
+      $("target-calorie-input").addEventListener("input",(event)=>{$("target-calorie-range").value=Math.min(6000,Math.max(800,Number(event.target.value)||800));updateMacroTotal();});
+      ["target-protein","target-carbs","target-fat"].forEach((id)=>$(id).addEventListener("input",updateMacroTotal));
+      $("reset-target").addEventListener("click",()=>{
+        $("target-calorie-input").value=recommendation.calories;
+        $("target-calorie-range").value=recommendation.calories;
+        $("target-protein").value=recommendation.protein;
+        $("target-carbs").value=recommendation.carbs;
+        $("target-fat").value=recommendation.fat;
+        macroUnit="grams";
+        document.querySelectorAll("[data-unit]").forEach((button)=>button.setAttribute("aria-pressed",String(button.dataset.unit==="grams")));
+        ["protein","carbs","fat"].forEach((key)=>$(`${key}-unit`).textContent="(g)");
+        updateMacroTotal();
+      });
+      $("target-form").addEventListener("submit",(event)=>{
+        event.preventDefault();
+        const calories=Number($("target-calorie-input").value);
+        const values=macroValuesInGrams();
+        if(!Number.isFinite(calories)||calories<800||calories>6000){$("target-message").textContent="Target kalori harus antara 800 dan 6.000 kkal.";return;}
+        if(Object.values(values).some((value)=>!Number.isFinite(value)||value<0||value>1000)){$("target-message").textContent="Periksa kembali nilai target makro.";return;}
+        const min=state.profile?.sex==="male"?1500:1200;
+        if(calories<min && !confirm(`Target ini di bawah ${fmt(min)} kkal. Pertimbangkan berkonsultasi dengan tenaga kesehatan. Simpan target ini?`)) return;
+        state.target={calories:Math.round(calories),protein:Math.round(values.protein),carbs:Math.round(values.carbs),fat:Math.round(values.fat)};
+        recommendation={...state.recommendation};
+        state.snapshots[today]={...state.target};
+        closeModal("target-modal"); refresh(); showToast("Target harian diperbarui.");
+      });
+
+      function calculateRecommendation(profile) {
+        const bmr=10*profile.weight+6.25*profile.height-5*profile.age+(profile.sex==="male"?5:-161);
+        const tdee=bmr*profile.activity;
+        const factor=profile.goal==="lose"?.85:profile.goal==="gain"?1.1:1;
+        const minimum=profile.sex==="male"?1500:1200;
+        const calories=Math.min(6000,Math.max(minimum,Math.round(tdee*factor/50)*50));
+        const distribution=profile.goal==="lose"?[.30,.40,.30]:profile.goal==="gain"?[.30,.45,.25]:[.25,.50,.25];
+        return {calories,protein:Math.round(calories*distribution[0]/4),carbs:Math.round(calories*distribution[1]/4),fat:Math.round(calories*distribution[2]/9)};
+      }
+      $("setup-goal").addEventListener("change",()=>{
+        const age=Number($("setup-age").value);
+        const lose=$("setup-goal").querySelector('option[value="lose"]');
+        if(age>0 && age<18 && lose){lose.disabled=true;if($("setup-goal").value==="lose")$("setup-goal").value="maintain";}
+        else if(lose) lose.disabled=false;
+      });
+      $("setup-form").addEventListener("submit",(event)=>{
+        event.preventDefault();
+        const profile={
+          sex:$("setup-sex").value, age:Number($("setup-age").value),
+          height:Number($("setup-height").value), weight:Number($("setup-weight").value),
+          activity:Number($("setup-activity").value), goal:$("setup-goal").value
+        };
+        const validAge=profile.age>=14&&profile.age<=100;
+        const validHeight=profile.height>=100&&profile.height<=250;
+        const validWeight=profile.weight>=25&&profile.weight<=300;
+        if(!validAge||!validHeight||!validWeight){$("setup-message").textContent="Isi usia 14–100 tahun, tinggi 100–250 cm, dan berat 25–300 kg.";return;}
+        if(profile.age<18 && profile.goal==="lose"){$("setup-message").textContent="Untuk usia di bawah 18 tahun, tujuan penurunan berat badan tidak disarankan tanpa pendampingan tenaga kesehatan.";return;}
+        const goalLabels={lose:"Menurunkan berat badan",maintain:"Menjaga berat badan",gain:"Menaikkan berat / otot"};
+        state.profile={...profile,goalLabel:goalLabels[profile.goal]};
+        state.target=calculateRecommendation(profile);
+        state.recommendation={...state.target};
+        state.snapshots[today]={...state.target};
+        state.onboarded=true; recommendation={...state.target};
+        closeModal("setup-modal"); refresh(); showToast("Target awal berhasil dihitung.");
+      });
+      function skipSetup() {
+        state.onboarded=true; state.profile=null;
+        state.snapshots[today]={...state.target};
+        closeModal("setup-modal"); refresh();
+      }
+      $("skip-setup").addEventListener("click",skipSetup);
+      $("setup-close").addEventListener("click",skipSetup);
+      $("setup-modal").addEventListener("click",(event)=>{if(event.target===$("setup-modal"))skipSetup();});
+      document.querySelectorAll("[data-close]").forEach((button)=>button.addEventListener("click",()=>closeModal(button.dataset.close)));
+      document.querySelectorAll(".modal-backdrop").forEach((backdrop)=>backdrop.addEventListener("keydown",(event)=>{
+        if(event.key==="Escape" && backdrop.id!=="setup-modal") closeModal(backdrop.id);
+      }));
+      document.addEventListener("click",(event)=>{
+        if(!event.target.closest(".search-wrap")) $("food-suggestions").classList.add("hidden");
+      });
+
+      if(!state.snapshots[today]) state.snapshots[today]={...state.target};
+      recommendation={...state.recommendation};
+      setMeal(activeMeal);
+      setPortion(150);
+      renderSummary();
+      if(!state.onboarded) openModal("setup-modal");
+    })();
+  </script>
+</body>
+</html>
